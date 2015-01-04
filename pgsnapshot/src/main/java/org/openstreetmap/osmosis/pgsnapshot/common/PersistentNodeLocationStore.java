@@ -38,7 +38,7 @@ public class PersistentNodeLocationStore implements NodeLocationStore {
 	private long currentFileOffset;
 	private byte[] zeroBuffer;
 	private NodeLocation invalidNodeLocation;
-	
+	private long shiftNodeId;
 	
 	/**
 	 * Creates a new instance.
@@ -47,7 +47,7 @@ public class PersistentNodeLocationStore implements NodeLocationStore {
 		stage = StorageStage.NotStarted;
 		
 		lastNodeId = Long.MIN_VALUE;
-		
+		shiftNodeId = Long.MIN_VALUE;
 		zeroBuffer = new byte[ZERO_BUFFER_SIZE];
 		Arrays.fill(zeroBuffer, (byte) 0);
 		
@@ -130,7 +130,17 @@ public class PersistentNodeLocationStore implements NodeLocationStore {
 		long requiredFileOffset;
 		
 		initializeAddStage();
-		
+		if (lastNodeId == Long.MIN_VALUE) {
+		    if (nodeId < 0) {
+		        if (shiftNodeId == Long.MIN_VALUE) {
+		            shiftNodeId = -nodeId;
+		        }
+		    }
+		}
+
+		if (shiftNodeId != Long.MIN_VALUE) {
+		    nodeId += shiftNodeId;
+		}
 		// We can only add nodes in sorted order.
 		if (nodeId <= lastNodeId) {
 			throw new OsmosisRuntimeException(
@@ -185,6 +195,9 @@ public class PersistentNodeLocationStore implements NodeLocationStore {
 		long offset;
 		
 		initializeReadingStage();
+		if (shiftNodeId != Long.MIN_VALUE) {
+		    nodeId += shiftNodeId;
+		}
 		
 		offset = nodeId * NODE_DATA_SIZE;
 		
